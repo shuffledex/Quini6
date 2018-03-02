@@ -1,8 +1,13 @@
 pragma solidity ^0.4.15;
 
+import "./SafeMath.sol";
+
 contract Quini6 {
 
-	event NuevaJugada(address jugador, uint256 numJugadas, uint[6] jugada);
+	using SafeMath for uint256;
+
+	event NuevaJugada(address jugador, uint256 valor, uint256 numJugadas, uint[6] jugada);
+	event Bolillero(uint[6] bolillas);
 
 	//valido que:
 	/*
@@ -43,16 +48,24 @@ contract Quini6 {
 		_;
 	}
 
+	modifier validarPago() {
+		//valido que el pago sea exactamente de 0.003 sin considerar el gasto de gas
+		require(msg.value == .003 ether);
+		_;
+	}	
+
 	struct Jugador {
 		address addr;
 		uint[6][] jugadas;       
-	}  
+	}
 
 	mapping(address => bool) jugadorExistente;
 	mapping(address => uint256) mapaJugadores;
 	Jugador[] jugadores;
 
-	function jugar(uint[6] _jugada) public validarJugada(_jugada) {
+	// TENGO QUE MANDAR TODO EL PROCESAMIENTO DE PAGO AL GANADOR DEL BOLETO EN CASO QUE HAYA
+
+	function jugar(uint[6] _jugada) public payable validarJugada(_jugada) validarPago {
 
 		if (!jugadorExistente[msg.sender]) {
 			Jugador memory jugador = Jugador(msg.sender, new uint[6][](0));
@@ -63,11 +76,27 @@ contract Quini6 {
 		
 		jugadores[mapaJugadores[msg.sender]].jugadas.push(_jugada);
 
-		NuevaJugada(msg.sender, jugadores[mapaJugadores[msg.sender]].jugadas.length, _jugada);
+		NuevaJugada(msg.sender, msg.value, jugadores[mapaJugadores[msg.sender]].jugadas.length, _jugada);
 	}
 
 	function getNumeroJugadores() view public returns(uint) {
 		return jugadores.length;
+	}
+
+	// EVM es deterministica, por lo que los numeros randoms se calculan en relacion a los blocknumers
+	function random(uint _index) private view returns (uint256) {
+		return uint256(block.blockhash(block.number - _index * 2));
+	}
+
+	// TODO: tengo que corroborar que los numeros no sean repetidos
+	// TODO: hacer solución con oraculo
+	function bolillero() public payable {
+		uint[6] memory bolillas;
+		for (uint i = 1; i <= 6; i++) {
+			uint numero = random(i) % 45;
+			bolillas[i-1] = numero;
+		}
+		Bolillero(bolillas);
 	}
 
 	/*

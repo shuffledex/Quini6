@@ -60,13 +60,40 @@ window.App = {
     this.setStatus("Initiating transaction... (please wait)");
 
     Quini6.deployed().then(function(instance) {
-      return instance.jugar([1,2,3,4,5,6], {from: account});
+      return instance.jugar([1,2,3,4,5,6], {from: account, value: web3.toWei(0.003, 'ether')});
     }).then(function(result) {
       console.log("RESULT", result)
       for (var i = 0; i < result.logs.length; i++) {
         var log = result.logs[i];
         if (log.event == "NuevaJugada") {
-          console.log(log.args.jugador, log.args.numJugadas, log.args.jugada)
+          console.log(log.args.jugador, log.args.valor, log.args.numJugadas, log.args.jugada)
+          break;
+        }
+      }
+      self.setStatus("Transaction complete!");
+      self.refreshBalance();
+    }).catch(function(e) {
+      console.log(e);
+      self.setStatus("Error sending coin; see log.");
+    });
+  },
+
+  bolillero: function() {
+    var self = this;
+
+    this.setStatus("Initiating transaction... (please wait)");
+
+    Quini6.deployed().then(function(instance) {
+      return instance.bolillero({from: account});
+    }).then(function(result) {
+      console.log("RESULT", result)
+      for (var i = 0; i < result.logs.length; i++) {
+        var log = result.logs[i];
+        if (log.event == "Bolillero") {
+          var bols = log.args.bolillas.map(function(x){
+            return x.toString()
+          })
+          console.log(bols)
           break;
         }
       }
